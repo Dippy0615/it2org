@@ -74,7 +74,7 @@ def write_org(module):
                         if "instrument" in column.keys():
                             if tracks[column["channel"]]["instrument"] == -1:
                                 tracks[column["channel"]]["instrument"] = column["instrument"]
-                                org_data[column["channel"]]["instrument"] = column["instrument"]
+                                org_data[column["channel"]]["instrument"] = column["instrument"]-1
                         if "volpan" in column.keys():
                             if column["volpan"] <= 64:
                                 tracks[column["channel"]]["volume"] = column["volpan"]
