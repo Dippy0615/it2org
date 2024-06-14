@@ -45,6 +45,7 @@ def write_org(module):
             "duration" : 0,
             "instrument" : -1,
             "volume" : 64,
+            "pan" : 128,
             "prev_note" : 0,
             "prev_note_index" : 0,   #index into the previous note played for this track in the org_data[channel]["notes"] list
             "rest" : False,
@@ -77,6 +78,12 @@ def write_org(module):
                         if "volpan" in column.keys():
                             if column["volpan"] <= 64:
                                 tracks[column["channel"]]["volume"] = column["volpan"]
+                        if "command" in column.keys():
+                            effect = column["command"]
+                            if effect[0] == "X":
+                                #panning
+                                pan = int(effect[1:], 16)
+                                tracks[column["channel"]]["pan"] = pan
                         if "note" in column.keys():
                             if column["note"] != 254 and column["note"] != 255:
                                 #disable rest flag
@@ -86,13 +93,13 @@ def write_org(module):
                                     "note" : column["note"]-24,
                                     "position" : tracks[column["channel"]]["position"],
                                     "volume" : tracks[column["channel"]]["volume"]*4-60,
-                                    "pan" : 6
+                                    "pan" : int((tracks[column["channel"]]["pan"]/255) * 12)
                                 })
                                 
                                 #write duration for previous note
                                 if tracks[column["channel"]]["prev_note"]>0:
                                     index = tracks[column["channel"]]["prev_note_index"]
-                                    org_data[column["channel"]]["notes"][index]["duration"] = tracks[column["channel"]]["duration"] #the most readable line of code of all time
+                                    org_data[column["channel"]]["notes"][index]["duration"] = tracks[column["channel"]]["duration"]
                                 tracks[column["channel"]]["duration"] = 0
 
                                 #update previous note info
