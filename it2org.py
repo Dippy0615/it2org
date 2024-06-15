@@ -103,9 +103,12 @@ def write_org(module):
             "no_change" : False,
             "no_change_list" : [],   #list of dicts that represet each no change event
         })
-    
+
+    sample_volumes = [-1] * 255 #sample volumes for each instrument used
+    order_positions = [0] * len(module["orders"]) #orgayana positions for each order, used for the Bxx command.
+
     #actually populate org_data's dicts
-    for order in module["orders"]:
+    for order_id, order in enumerate(module["orders"]):
         if order == 254:
             pass
         elif order == 255:
@@ -121,6 +124,7 @@ def write_org(module):
         else:
             pattern = module["patterns"][order]
             row_list = pattern[0]
+            order_positions[order_id] = tracks[0]["position"]
             for row_id, row in enumerate(row_list):
                 if len(row)>0:
                     for column in row:
@@ -147,25 +151,31 @@ def write_org(module):
                                     tracks[column["channel"]]["no_change"] = True
                         if "command" in column.keys():
                             effect = column["command"]
-                            if effect[0] == "X":
+                            if effect[0] == "B":
+                                order = int(effect[1:], 16)
+                                loop_start_position = order_positions[order]
+                            elif effect[0] == "X":
                                 #panning
                                 pan = int(effect[1:], 16)
                                 tracks[column["channel"]]["pan"] = pan
-                            if not "note" in column.keys() and tracks[column["channel"]]["rest"] == False and tracks[column["channel"]]["prev_note"]>0:
+                                if not "note" in column.keys() and tracks[column["channel"]]["rest"] == False and tracks[column["channel"]]["prev_note"]>0:
                                     #enable 'no change' orgayana flag if tracker note is absent
                                     tracks[column["channel"]]["no_change"] = True
                         if "note" in column.keys():
                             if column["note"] != 254 and column["note"] != 255:
                                 if not "volpan" in column.keys():
                                     #use sample volume if volume row is not present
-
-                                    #get the sample from the instrument's sample map, and use that sample's volume
-                                    table = list(module["instruments"][column["instrument"]-1]["smptable"])
-                                    table_list = list(table)
-                                    if len(table_list)>0:
-                                        sample_num = table_list[column["note"]][0]-1
-                                        volume = module["samples"][sample_num]["volume"]
-                                        tracks[column["channel"]]["volume"] = volume
+                                    if sample_volumes[column["instrument"]]==-1:
+                                        #get the sample from the instrument's sample map, and use that sample's volume
+                                        table = list(module["instruments"][column["instrument"]-1]["smptable"])
+                                        table_list = list(table)
+                                        if len(table_list)>0:
+                                            sample_num = table_list[column["note"]][0]-1
+                                            volume = module["samples"][sample_num]["volume"]
+                                            sample_volumes[column["instrument"]] = volume
+                                            tracks[column["channel"]]["volume"] = volume
+                                    else:
+                                        tracks[column["channel"]]["volume"] = sample_volumes[column["instrument"]] 
 
                                 #disable rest and no change flags
                                 tracks[column["channel"]]["rest"] = False
