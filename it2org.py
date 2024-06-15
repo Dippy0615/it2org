@@ -36,7 +36,10 @@ def org_write_note(org_data, channel, note, tracks, no_change=False):
         if tracks[channel]["prev_note"]>0:
             index = tracks[channel]["prev_note_index"]
             if org_data[channel]["notes"][index]["no_change"] == False:
-                org_data[channel]["notes"][index]["duration"] = tracks[channel]["duration"]
+                if tracks[channel]["duration"] <= 255:
+                    org_data[channel]["notes"][index]["duration"] = tracks[channel]["duration"]
+                else:
+                    org_data[channel]["notes"][index]["duration"] = 255
 
             tracks[channel]["duration"] = 0
             tracks[channel]["prev_note_index"] = len(org_data[channel]["notes"])-1
@@ -122,12 +125,20 @@ def write_org(module):
                 if len(row)>0:
                     for column in row:
                         if "instrument" in column.keys():
-                            #first instrument used is set as the orgayana instrument
                             if tracks[column["channel"]]["instrument"] == -1:
-                                tracks[column["channel"]]["instrument"] = column["instrument"]
-                                org_data[column["channel"]]["instrument"] = column["instrument"]-1
-                                #drum sounds start at 0
-                                if column["channel"]>7: org_data[column["channel"]]["instrument"]-=100
+                                #try to map an IT instrument to an orgayana instrument
+                                name = str(module["instruments"][column["instrument"]-1]["name"])
+                                if "instrument:" in name:
+                                    ins = int(name[13:len(name)-1])
+                                    if column["channel"]>7: ins-=100
+                                    tracks[column["channel"]]["instrument"] = ins
+                                    org_data[column["channel"]]["instrument"] = ins
+                                else:
+                                #else, the first instrument used is set as the orgayana instrument
+                                    tracks[column["channel"]]["instrument"] = column["instrument"]
+                                    org_data[column["channel"]]["instrument"] = column["instrument"]-1
+                                    #drum sounds start at 0
+                                    if column["channel"]>7: org_data[column["channel"]]["instrument"]-=100
                         if "volpan" in column.keys():
                             if column["volpan"] <= 64:
                                 tracks[column["channel"]]["volume"] = column["volpan"]
@@ -146,8 +157,15 @@ def write_org(module):
                         if "note" in column.keys():
                             if column["note"] != 254 and column["note"] != 255:
                                 if not "volpan" in column.keys():
-                                    instrument = tracks[column["channel"]]["instrument"] = column["instrument"]
-                                    tracks[column["channel"]]["volume"] = module["samples"][instrument-1]["volume"]
+                                    #use sample volume if volume row is not present
+
+                                    #get the sample from the instrument's sample map, and use that sample's volume
+                                    table = list(module["instruments"][column["instrument"]-1]["smptable"])
+                                    table_list = list(table)
+                                    if len(table_list)>0:
+                                        sample_num = table_list[column["note"]][0]-1
+                                        volume = module["samples"][sample_num]["volume"]
+                                        tracks[column["channel"]]["volume"] = volume
 
                                 #disable rest and no change flags
                                 tracks[column["channel"]]["rest"] = False
