@@ -97,7 +97,6 @@ def write_org(module):
             "prev_note" : 0,
             "prev_note_index" : 0,   #index into the previous note played for this track in the org_data[channel]["notes"] list, excluding no change notes
             "rest" : False,
-            "sample_volume" : -1,
             "no_change" : False,
             "no_change_list" : [],   #list of dicts that represet each no change event
         })
@@ -147,7 +146,8 @@ def write_org(module):
                         if "note" in column.keys():
                             if column["note"] != 254 and column["note"] != 255:
                                 if not "volpan" in column.keys():
-                                    tracks[column["channel"]]["volume"] = 64
+                                    instrument = tracks[column["channel"]]["instrument"] = column["instrument"]
+                                    tracks[column["channel"]]["volume"] = module["samples"][instrument-1]["volume"]
 
                                 #disable rest and no change flags
                                 tracks[column["channel"]]["rest"] = False
