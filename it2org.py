@@ -16,8 +16,8 @@ else:
     exit(0)
 
 def org_get_volume(volume):
-    vol = int((volume/64) * 254)-60
-    return vol if vol > 0 else 0
+    vol = int((volume/64) * 254)
+    return max(int(0.8 * vol), 0)
 
 def org_get_panning(panning):
     return int((panning/255) * 12)
@@ -117,7 +117,10 @@ def write_org(module):
             for i in range(TRACK_NUM):
                 if tracks[i]["prev_note"]>0:
                     index = tracks[i]["prev_note_index"]
-                    org_data[i]["notes"][index]["duration"] = tracks[i]["duration"]
+                    if org_data[i]["notes"][index]["duration"]>255:
+                        org_data[i]["notes"][index]["duration"] = 255
+                    else:
+                        org_data[i]["notes"][index]["duration"] = tracks[i]["duration"]
                     tracks[i]["duration"] = 0
             loop_end_position = tracks[0]["position"]
             break
@@ -154,6 +157,16 @@ def write_org(module):
                             if effect[0] == "B":
                                 order = int(effect[1:], 16)
                                 loop_start_position = order_positions[order]
+                            elif effect[0] == "D":
+                                if not "note" in column.keys() and tracks[column["channel"]]["rest"] == False and tracks[column["channel"]]["prev_note"]>0:
+                                    fade_in = int(effect[1], 16)
+                                    fade_out = int(effect[2], 16)
+                                    if fade_in==0: #fade out
+                                        tracks[column["channel"]]["no_change"] = True
+                                        tracks[column["channel"]]["volume"] -= org_get_volume(fade_out * (module["initspeed"]/4))
+                                    elif fade_out==0: #fade in
+                                        tracks[column["channel"]]["no_change"] = True
+                                        tracks[column["channel"]]["volume"] += org_get_volume(fade_in * (module["initspeed"]/4))
                             elif effect[0] == "X":
                                 #panning
                                 pan = int(effect[1:], 16)
@@ -193,7 +206,7 @@ def write_org(module):
                             org_write_note(org_data, column["channel"], 255, tracks, True)
                 for i in range(TRACK_NUM):
                     tracks[i]["position"]+=1
-                    if tracks[i]["rest"] == False:
+                    if tracks[i]["rest"] == False and tracks[i]["duration"] < 255:
                         tracks[i]["duration"]+=1
                 if tracks[0]["position"] % steps_per_measure == 0:
                     current_measure+=1
