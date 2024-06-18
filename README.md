@@ -2,6 +2,7 @@ Python 3 script that converts Impulse Tracker modules into Cave Story Orgayana f
 
 Supported commands:
 Bxx
+Dxy
 Xxx
 
 (this readme is a W.I.P)
