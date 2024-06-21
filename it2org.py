@@ -157,7 +157,7 @@ def write_org(module):
                             if effect[0] == "B":
                                 order = int(effect[1:], 16)
                                 loop_start_position = order_positions[order]
-                            elif effect[0] == "D":
+                            elif effect[0] == "D": or effect[0] == "K":
                                 if not "note" in column.keys() and tracks[column["channel"]]["rest"] == False and tracks[column["channel"]]["prev_note"]>0:
                                     fade_in = int(effect[1], 16)
                                     fade_out = int(effect[2], 16)
