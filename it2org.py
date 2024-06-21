@@ -102,6 +102,8 @@ def write_org(module):
             "rest" : False,
             "no_change" : False,
             "no_change_list" : [],   #list of dicts that represet each no change event
+			"prev_vol_in" : 0,
+			"prev_vol_out" : 0
         })
 
     sample_volumes = [-1] * 255 #sample volumes for each instrument used
@@ -157,15 +159,23 @@ def write_org(module):
                             if effect[0] == "B":
                                 order = int(effect[1:], 16)
                                 loop_start_position = order_positions[order]
-                            elif effect[0] == "D": or effect[0] == "K":
+                            elif effect[0] == "D" or effect[0] == "K":
                                 if not "note" in column.keys() and tracks[column["channel"]]["rest"] == False and tracks[column["channel"]]["prev_note"]>0:
+                                    tracks[column["channel"]]["no_change"] = True
                                     fade_in = int(effect[1], 16)
                                     fade_out = int(effect[2], 16)
-                                    if fade_in==0: #fade out
-                                        tracks[column["channel"]]["no_change"] = True
+                                if fade_in==0 and fade_out==0: #continue
+                                    if tracks[column["channel"]]["prev_vol_out"]>0:
+                                        fade_out = tracks[column["channel"]]["prev_vol_out"]
+                                    if tracks[column["channel"]]["prev_vol_in"]>0:
+                                        fade_in = tracks[column["channel"]]["prev_vol_in"]
+                                elif fade_in==0 and fade_out>0: #fade out
+                                        tracks[column["channel"]]["prev_vol_out"] = fade_out
+                                elif fade_out==0 and fade_in>0: #fade in
+                                        tracks[column["channel"]]["prev_vol_in"] = fade_in
+                                if fade_out>0: 
                                         tracks[column["channel"]]["volume"] -= org_get_volume(fade_out * (module["initspeed"]/4))
-                                    elif fade_out==0: #fade in
-                                        tracks[column["channel"]]["no_change"] = True
+                                elif fade_in>0: 
                                         tracks[column["channel"]]["volume"] += org_get_volume(fade_in * (module["initspeed"]/4))
                             elif effect[0] == "X":
                                 #panning
