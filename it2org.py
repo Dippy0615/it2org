@@ -160,10 +160,9 @@ def write_org(module):
                                 order = int(effect[1:], 16)
                                 loop_start_position = order_positions[order]
                             elif effect[0] == "D" or effect[0] == "K":
-                                if not "note" in column.keys() and tracks[column["channel"]]["rest"] == False and tracks[column["channel"]]["prev_note"]>0:
-                                    tracks[column["channel"]]["no_change"] = True
-                                    fade_in = int(effect[1], 16)
-                                    fade_out = int(effect[2], 16)
+                                #volume fades
+                                fade_in = int(effect[1], 16)
+                                fade_out = int(effect[2], 16)
                                 if fade_in==0 and fade_out==0: #continue
                                     if tracks[column["channel"]]["prev_vol_out"]>0:
                                         fade_out = tracks[column["channel"]]["prev_vol_out"]
@@ -173,9 +172,11 @@ def write_org(module):
                                         tracks[column["channel"]]["prev_vol_out"] = fade_out
                                 elif fade_out==0 and fade_in>0: #fade in
                                         tracks[column["channel"]]["prev_vol_in"] = fade_in
-                                if fade_out>0: 
+                                if not "note" in column.keys() and tracks[column["channel"]]["rest"] == False and tracks[column["channel"]]["prev_note"]>0:
+                                    tracks[column["channel"]]["no_change"] = True
+                                    if fade_out>0: 
                                         tracks[column["channel"]]["volume"] -= org_get_volume(fade_out * (module["initspeed"]/4))
-                                elif fade_in>0: 
+                                    elif fade_in>0:
                                         tracks[column["channel"]]["volume"] += org_get_volume(fade_in * (module["initspeed"]/4))
                             elif effect[0] == "X":
                                 #panning
