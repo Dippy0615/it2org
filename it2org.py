@@ -17,7 +17,7 @@ else:
 
 def org_get_volume(volume):
     vol = int((volume/64) * 254)
-    return max(int(0.8 * vol), 0)
+    return min(max(int(0.8 * vol), 0), 232)
 
 def org_get_panning(panning):
     return int((panning/255) * 12)
@@ -25,7 +25,7 @@ def org_get_panning(panning):
 def org_write_note(org_data, channel, note, tracks, no_change=False):
     if no_change==False:
         org_data[channel]["notes"].append({
-                    "note" : note-24,
+                    "note" : max(note-24, 0),
                     "position" : tracks[channel]["position"],
                     "volume" : org_get_volume(tracks[channel]["volume"]),
                     "pan" : org_get_panning(tracks[channel]["pan"]),
@@ -188,17 +188,18 @@ def write_org(module):
                             if column["note"] != 254 and column["note"] != 255:
                                 if not "volpan" in column.keys():
                                     #use sample volume if volume row is not present
-                                    if sample_volumes[column["instrument"]]==-1:
-                                        #get the sample from the instrument's sample map, and use that sample's volume
-                                        table = list(module["instruments"][column["instrument"]-1]["smptable"])
-                                        table_list = list(table)
-                                        if len(table_list)>0:
-                                            sample_num = table_list[column["note"]][0]-1
-                                            volume = module["samples"][sample_num]["volume"]
-                                            sample_volumes[column["instrument"]] = volume
-                                            tracks[column["channel"]]["volume"] = volume
-                                    else:
-                                        tracks[column["channel"]]["volume"] = sample_volumes[column["instrument"]] 
+                                    if "instrument" in column.keys():
+                                        if sample_volumes[column["instrument"]]==-1:
+                                            #get the sample from the instrument's sample map, and use that sample's volume
+                                            table = list(module["instruments"][column["instrument"]-1]["smptable"])
+                                            table_list = list(table)
+                                            if len(table_list)>0:
+                                                sample_num = table_list[column["note"]][0]-1
+                                                volume = module["samples"][sample_num]["volume"]
+                                                sample_volumes[column["instrument"]] = volume
+                                                tracks[column["channel"]]["volume"] = volume
+                                        else:
+                                            tracks[column["channel"]]["volume"] = sample_volumes[column["instrument"]] 
 
                                 #disable rest and no change flags
                                 tracks[column["channel"]]["rest"] = False
